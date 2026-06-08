@@ -3,107 +3,122 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Pronostics CDM 2026</title>
+    <title>Pronostics CDM 2026 - Master</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <script crossorigin src="https://unpkg.com/react@18/umd/react.development.js"></script>
     <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.development.js"></script>
     <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
-    <script type="module">
-        import { initializeApp } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
-        import { getAuth, signInAnonymously } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
-        import { getFirestore, doc, onSnapshot, setDoc, updateDoc, deleteField } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-firestore.js";
-        window.FirebaseMods = { initializeApp, getAuth, signInAnonymously, getFirestore, doc, onSnapshot, setDoc, updateDoc, deleteField };
-    </script>
     <style>
         @import url('https://fonts.googleapis.com/css2?family=Montserrat:wght@400;700;900&display=swap');
-        body { font-family: 'Montserrat', sans-serif; background-color: #0f172a; color: white; }
+        body { font-family: 'Montserrat', sans-serif; background-color: #0f172a; color: white; min-height: 100vh; }
         .glass-panel { background: rgba(30, 41, 59, 0.7); backdrop-filter: blur(12px); border: 1px solid rgba(255, 255, 255, 0.1); }
         .neon-glow:focus { box-shadow: 0 0 15px rgba(16, 185, 129, 0.5); }
     </style>
 </head>
-<body class="min-h-screen pb-24">
+<body class="pb-24">
     <div id="root"></div>
     <script type="text/babel">
         const { useState, useEffect } = React;
+
         const MATCHES = [
-            { id: "m1", team1: "Mexique", team2: "Afr. du Sud", group: "Gr. A" },
-            { id: "m2", team1: "France", team2: "Sénégal", group: "Gr. I" },
-            { id: "m3", team1: "Angleterre", team2: "Croatie", group: "Gr. L" }
+            { id: "m1", team1: "Mexique", c1: "mx", team2: "Afr. du Sud", c2: "za", group: "Gr. A", h2h: "2-1-0" },
+            { id: "m2", team1: "Corée du Sud", c1: "kr", team2: "Tchéquie", c2: "cz", group: "Gr. A", h2h: "1-2-1" },
+            { id: "m3", team1: "Canada", c1: "ca", team2: "Bosnie", c2: "ba", group: "Gr. B", h2h: "0-0-0" },
+            { id: "m4", team1: "USA", c1: "us", team2: "Paraguay", c2: "py", group: "Gr. D", h2h: "2-2-2" },
+            { id: "m5", team1: "Qatar", c1: "qa", team2: "Suisse", c2: "ch", group: "Gr. B", h2h: "0-1-1" },
+            { id: "m6", team1: "Brésil", c1: "br", team2: "Maroc", c2: "ma", group: "Gr. C", h2h: "3-0-1" },
+            { id: "m7", team1: "Haïti", c1: "ht", team2: "Écosse", c2: "gb-sct", group: "Gr. C", h2h: "0-0-1" },
+            { id: "m8", team1: "Australie", c1: "au", team2: "Turquie", c2: "tr", group: "Gr. D", h2h: "1-1-1" },
+            { id: "m9", team1: "Allemagne", c1: "de", team2: "Curaçao", c2: "cw", group: "Gr. E", h2h: "0-0-0" },
+            { id: "m10", team1: "Pays-Bas", c1: "nl", team2: "Japon", c2: "jp", group: "Gr. F", h2h: "2-1-0" },
+            { id: "m11", team1: "Côte d'Ivoire", c1: "ci", team2: "Équateur", c2: "ec", group: "Gr. E", h2h: "1-0-1" },
+            { id: "m12", team1: "Suède", c1: "se", team2: "Tunisie", c2: "tn", group: "Gr. F", h2h: "1-1-0" },
+            { id: "m13", team1: "Espagne", c1: "es", team2: "Cap-Vert", c2: "cv", group: "Gr. H", h2h: "0-0-0" },
+            { id: "m14", team1: "Belgique", c1: "be", team2: "Égypte", c2: "eg", group: "Gr. G", h2h: "1-1-0" },
+            { id: "m15", team1: "Ar. Saoudite", c1: "sa", team2: "Uruguay", c2: "uy", group: "Gr. H", h2h: "0-1-2" },
+            { id: "m16", team1: "Iran", c1: "ir", team2: "N.-Zélande", c2: "nz", group: "Gr. G", h2h: "1-1-0" },
+            { id: "m17", team1: "France", c1: "fr", team2: "Sénégal", c2: "sn", group: "Gr. I", h2h: "1-0-1" },
+            { id: "m18", team1: "Irak", c1: "iq", team2: "Norvège", c2: "no", group: "Gr. I", h2h: "0-0-1" },
+            { id: "m19", team1: "Argentine", c1: "ar", team2: "Algérie", c2: "dz", group: "Gr. J", h2h: "1-0-0" },
+            { id: "m20", team1: "Autriche", c1: "at", team2: "Jordanie", c2: "jo", group: "Gr. J", h2h: "0-0-0" },
+            { id: "m21", team1: "Portugal", c1: "pt", team2: "RD Congo", c2: "cd", group: "Gr. K", h2h: "1-0-0" },
+            { id: "m22", team1: "Angleterre", c1: "gb-eng", team2: "Croatie", c2: "hr", group: "Gr. L", h2h: "3-1-2" },
+            { id: "m23", team1: "Ghana", c1: "gh", team2: "Panama", c2: "pa", group: "Gr. L", h2h: "1-0-0" },
+            { id: "m24", team1: "Ouzbékistan", c1: "uz", team2: "Colombie", c2: "co", group: "Gr. K", h2h: "0-0-1" }
         ];
 
         const App = () => {
-            const [appState, setAppState] = useState({ predictions: {}, users: {} });
             const [user, setUser] = useState(localStorage.getItem('wc_username') || "");
-            const [pass, setPass] = useState("");
-            const [db, setDb] = useState(null);
+            const [predictions, setPredictions] = useState(JSON.parse(localStorage.getItem('pronos_data') || "{}"));
+            const [timers, setTimers] = useState(JSON.parse(localStorage.getItem('timers') || "{}"));
+            const [actualScores, setActualScores] = useState(JSON.parse(localStorage.getItem('actual_scores') || "{}"));
+            
             const isAdmin = user?.toLowerCase() === 'dario';
 
             useEffect(() => {
-                const init = async () => {
-                    if (window.FirebaseMods) {
-                        const { initializeApp, getAuth, signInAnonymously, getFirestore, doc, onSnapshot } = window.FirebaseMods;
-                        const app = initializeApp(typeof __firebase_config !== 'undefined' ? JSON.parse(__firebase_config) : {});
-                        const auth = getAuth(app);
-                        await signInAnonymously(auth);
-                        const db = getFirestore(app);
-                        setDb(db);
-                        const docRef = doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'wc-2026', 'public', 'data');
-                        onSnapshot(docRef, (d) => { if(d.exists()) setAppState(d.data()); });
-                    }
-                };
-                init();
-            }, []);
+                localStorage.setItem('pronos_data', JSON.stringify(predictions));
+                localStorage.setItem('timers', JSON.stringify(timers));
+                localStorage.setItem('actual_scores', JSON.stringify(actualScores));
+            }, [predictions, timers, actualScores]);
 
-            const updateDB = async (obj) => { 
-                if(db) await window.FirebaseMods.updateDoc(window.FirebaseMods.doc(db, 'artifacts', typeof __app_id !== 'undefined' ? __app_id : 'wc-2026', 'public', 'data'), obj); 
-            };
-            
-            const handleLogin = async (e) => {
-                e.preventDefault();
-                const users = appState.users || {};
-                if (users[user] && users[user].pass !== pass) return alert("Mot de passe incorrect");
-                if (!users[user]) await updateDB({ [`users.${user}`]: { pass } });
-                localStorage.setItem('wc_username', user);
-                window.location.reload();
-            };
-
-            const deleteAccount = async (targetUser) => {
-                if (!isAdmin) return;
-                await updateDB({ [`users.${targetUser}`]: window.FirebaseMods.deleteField() });
+            const updatePred = (mId, team, val) => {
+                if (timers[mId] && Date.now() - timers[mId] > 120000) return; // Verrouillage 2min
+                if (!timers[mId]) setTimers(prev => ({...prev, [mId]: Date.now()}));
+                
+                setPredictions(prev => ({
+                    ...prev,
+                    [mId]: { ...prev[mId], [user]: { ...(prev[mId]?.[user] || {}), [team]: val } }
+                }));
             };
 
             if (!user) return (
                 <div className="flex h-screen items-center justify-center p-4">
-                    <form onSubmit={handleLogin} className="glass-panel p-8 rounded-2xl w-full max-w-sm">
-                        <h1 className="text-2xl font-black mb-6">CONNEXION</h1>
-                        <input className="w-full p-3 bg-slate-900 rounded-lg mb-4" placeholder="Pseudo" onChange={e => setUser(e.target.value)}/>
-                        <input className="w-full p-3 bg-slate-900 rounded-lg mb-6" type="password" placeholder="Mot de passe" onChange={e => setPass(e.target.value)}/>
-                        <button className="w-full bg-emerald-500 py-3 font-bold rounded-lg uppercase">Entrer</button>
+                    <form onSubmit={(e) => { e.preventDefault(); localStorage.setItem('wc_username', user); window.location.reload(); }} className="glass-panel p-8 rounded-2xl w-full max-w-sm">
+                        <h1 className="text-2xl font-black mb-6 text-emerald-400 text-center">PRONOS 2026</h1>
+                        <input className="w-full p-3 bg-slate-900 rounded-lg mb-4 neon-glow border border-slate-700" placeholder="Ton Pseudo" onChange={e => setUser(e.target.value)}/>
+                        <button className="w-full bg-emerald-500 py-3 font-black rounded-lg uppercase">Accéder au stade</button>
                     </form>
                 </div>
             );
 
             return (
                 <div className="max-w-2xl mx-auto p-4">
-                    <h1 className="text-3xl font-black mb-6">PRONOSTICS CDM 2026</h1>
+                    <header className="flex justify-between items-center mb-8">
+                        <h1 className="text-3xl font-black text-emerald-400 uppercase">CDM 2026</h1>
+                        <button onClick={() => { localStorage.clear(); window.location.reload(); }} className="text-xs text-rose-500 font-bold">Déconnexion</button>
+                    </header>
+
                     {MATCHES.map(m => (
                         <div key={m.id} className="glass-panel p-4 mb-4 rounded-xl flex items-center justify-between">
-                            <span className="font-bold text-sm">{m.team1}</span>
-                            <div className="flex gap-2">
-                                <input className="w-12 h-10 bg-slate-900 text-center rounded neon-glow" type="number" onChange={e => updateDB({[`predictions.${m.id}.${user}.t1`]: parseInt(e.target.value)})} />
-                                <span className="font-black self-center">:</span>
-                                <input className="w-12 h-10 bg-slate-900 text-center rounded neon-glow" type="number" onChange={e => updateDB({[`predictions.${m.id}.${user}.t2`]: parseInt(e.target.value)})} />
+                            <div className="text-center w-20">
+                                <img src={`https://hatscripts.github.io/circle-flags/flags/${m.c1}.svg`} className="w-10 h-10 mx-auto mb-1 rounded-full"/>
+                                <span className="text-[10px] font-bold">{m.team1}</span>
                             </div>
-                            <span className="font-bold text-sm">{m.team2}</span>
+                            <div className="flex items-center gap-2">
+                                <input className="w-12 h-10 bg-slate-900 text-center rounded neon-glow border border-slate-700" type="number" 
+                                    disabled={timers[m.id] && Date.now() - timers[m.id] > 120000}
+                                    value={predictions[m.id]?.[user]?.t1 || ""} 
+                                    onChange={e => updatePred(m.id, 't1', e.target.value)} />
+                                <span className="text-xs font-bold text-slate-500">{m.h2h}</span>
+                                <input className="w-12 h-10 bg-slate-900 text-center rounded neon-glow border border-slate-700" type="number" 
+                                    disabled={timers[m.id] && Date.now() - timers[m.id] > 120000}
+                                    value={predictions[m.id]?.[user]?.t2 || ""} 
+                                    onChange={e => updatePred(m.id, 't2', e.target.value)} />
+                            </div>
+                            <div className="text-center w-20">
+                                <img src={`https://hatscripts.github.io/circle-flags/flags/${m.c2}.svg`} className="w-10 h-10 mx-auto mb-1 rounded-full"/>
+                                <span className="text-[10px] font-bold">{m.team2}</span>
+                            </div>
                         </div>
                     ))}
+                    
                     {isAdmin && (
-                        <div className="mt-8 glass-panel p-6 rounded-2xl">
-                            <h2 className="text-xl font-black mb-4 text-rose-500">GESTION COMPTES</h2>
-                            {Object.keys(appState.users || {}).map(u => (
-                                <div key={u} className="flex justify-between py-2 border-b border-white/10">
-                                    <span>{u}</span>
-                                    <button onClick={() => deleteAccount(u)} className="bg-rose-500 px-3 py-1 rounded text-xs font-bold">SUPPRIMER</button>
+                        <div className="mt-10 glass-panel p-6 rounded-2xl border-rose-500">
+                            <h2 className="text-xl font-black mb-4 text-rose-500">ADMIN: SCORES RÉELS</h2>
+                            {MATCHES.map(m => (
+                                <div key={m.id} className="flex justify-between items-center mb-2">
+                                    <span className="text-xs">{m.team1} - {m.team2}</span>
+                                    <input className="w-12 h-8 bg-slate-900 text-center rounded border border-rose-500" type="number" onChange={e => setActualScores(prev => ({...prev, [m.id]: {...prev[m.id], t1: e.target.value}}))}/>
                                 </div>
                             ))}
                         </div>
