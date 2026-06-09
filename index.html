@@ -5,8 +5,11 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Pronostics - Coupe du Monde 2026</title>
     
+    <!-- Tailwind CSS -->
     <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Phosphor Icons -->
     <script src="https://unpkg.com/@phosphor-icons/web"></script>
+    <!-- Google Fonts -->
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@300;400;600;800;900&display=swap" rel="stylesheet">
 
     <style>
@@ -48,6 +51,7 @@
 
 <div id="app" class="container mx-auto px-4 py-8 max-w-6xl">
     
+    <!-- ECRAN DE CONNEXION / INSCRIPTION -->
     <div v-if="!currentUser" class="min-h-[80vh] flex items-center justify-center">
         <div class="glass-panel p-8 w-full max-w-md text-center transform transition-all shadow-[0_0_50px_rgba(22,101,52,0.2)]">
             <h1 class="text-5xl font-black mb-2 tracking-tighter text-transparent bg-clip-text bg-gradient-to-r from-green-400 to-emerald-600 drop-shadow-md">CDM 2026</h1>
@@ -75,12 +79,14 @@
             
             <div class="mt-6 text-[10px] text-gray-500 font-mono flex items-center justify-center gap-1">
                 <span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span>
-                Mode Local Actif (Aucun serveur requis)
+                Mode Local Actif (100% hors ligne)
             </div>
         </div>
     </div>
 
+    <!-- ECRAN PRINCIPAL -->
     <div v-else>
+        <!-- En-tête -->
         <header class="flex flex-col lg:flex-row justify-between items-center mb-8 glass-panel p-5 relative overflow-hidden">
             <div class="absolute -top-10 -left-10 w-32 h-32 bg-green-500/20 rounded-full blur-3xl"></div>
             
@@ -96,6 +102,7 @@
                 </div>
             </div>
             
+            <!-- Navigation -->
             <div class="flex flex-wrap justify-center gap-2 relative z-10">
                 <button @click="currentTab = 'pronos'" :class="currentTab === 'pronos' ? 'bg-green-600 shadow-[0_0_15px_rgba(74,222,128,0.5)]' : 'bg-gray-800/80 hover:bg-gray-700'" class="btn-dynamic px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all"><i class="ph ph-calendar-blank mr-1"></i> Matchs</button>
                 <button @click="currentTab = 'pools'" :class="currentTab === 'pools' ? 'bg-blue-600 shadow-[0_0_15px_rgba(59,130,246,0.5)]' : 'bg-gray-800/80 hover:bg-gray-700'" class="btn-dynamic px-4 py-2.5 rounded-xl text-sm font-bold tracking-wide transition-all"><i class="ph ph-squares-four mr-1"></i> Poules</button>
@@ -104,12 +111,14 @@
                 <button @click="logout" class="btn-dynamic px-3 py-2.5 bg-gray-900 border border-gray-700 hover:border-red-500 hover:text-red-400 rounded-xl text-sm font-bold ml-1 transition-all" title="Déconnexion"><i class="ph ph-power text-lg"></i></button>
             </div>
 
+            <!-- Local Sync Status Indicator -->
             <div class="hidden lg:flex flex-col items-end min-w-[80px] relative z-10">
                 <span class="text-[10px] text-blue-400 font-bold flex items-center gap-1 border border-blue-500/30 px-2 py-1 rounded bg-black/40"><span class="w-2 h-2 rounded-full bg-blue-500 animate-pulse"></span> DB Locale</span>
                 <span v-if="isSyncing" class="text-[9px] text-gray-400 mt-1">Sauvegarde...</span>
             </div>
         </header>
 
+        <!-- ONGLET : MATCHS (Pronostics) -->
         <div v-show="currentTab === 'pronos'" class="space-y-6">
             <div class="grid grid-cols-1 lg:grid-cols-2 gap-6">
                 <div v-for="match in matches" :key="match.id" class="glass-panel p-6 relative overflow-hidden group border border-gray-800 hover:border-green-500/30 transition-colors">
@@ -177,25 +186,25 @@
             </div>
         </div>
 
+        <!-- ONGLET : POULES (Pools) -->
         <div v-show="currentTab === 'pools'" class="space-y-6">
             <div class="glass-panel p-8 border-l-4 border-l-blue-500 bg-gradient-to-r from-blue-900/20 to-transparent">
                 <h2 class="text-2xl font-black mb-2 flex items-center gap-3"><i class="ph-fill ph-ranking text-blue-400 text-3xl"></i> Vainqueurs de Poules</h2>
-                <p class="text-gray-300">Qui dominera son groupe ? <span class="bg-blue-600/30 text-blue-300 px-2 py-0.5 rounded font-bold ml-2">1 point par bonne réponse</span></p>
+                <p class="text-gray-300">Qui dominera son groupe ? <span class="bg-blue-600/30 text-blue-300 px-2 py-0.5 rounded font-bold ml-2">Clique sur l'équipe (1 pt)</span></p>
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 <div v-for="group in groups" :key="group.id" class="glass-panel p-5 flex flex-col relative border-t-4 border-t-gray-800 hover:border-t-blue-500 transition-colors">
                     <h3 class="text-center font-black text-2xl mb-4 text-white drop-shadow-md">Groupe {{ group.id }}</h3>
                     
-                    <select v-model="currentUser.groupWinners[group.id]" @change="debouncedUserSave" class="w-full neon-input rounded-xl p-3 text-sm bg-gray-900/80 mb-5 cursor-pointer font-bold">
-                        <option value="">-- Vainqueur --</option>
-                        <option v-for="team in group.teams" :key="team.code" :value="team.code">{{ team.name }}</option>
-                    </select>
-
                     <div class="flex-grow space-y-2 mt-2">
-                        <div v-for="team in group.teams" :key="team.code" class="flex items-center gap-3 text-sm text-gray-300 bg-black/40 p-2.5 rounded-lg border border-gray-800">
-                            <img :src="`https://hatscripts.github.io/circle-flags/flags/${team.code}.svg`" class="w-6 h-6 rounded-full shadow-sm">
-                            <span class="font-semibold">{{ team.name }}</span>
+                        <div v-for="team in group.teams" :key="team.code" 
+                             @click="currentUser.groupWinners[group.id] = (currentUser.groupWinners[group.id] === team.code ? '' : team.code); debouncedUserSave()"
+                             class="flex items-center gap-3 text-sm p-3 rounded-lg border cursor-pointer transition-all duration-200"
+                             :class="currentUser.groupWinners[group.id] === team.code ? 'bg-blue-900/40 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] text-white font-bold transform scale-105' : 'bg-black/40 border-gray-800 text-gray-300 hover:bg-gray-800'">
+                            <img :src="`https://hatscripts.github.io/circle-flags/flags/${team.code}.svg`" class="w-8 h-8 rounded-full shadow-sm">
+                            <span class="flex-grow">{{ team.name }}</span>
+                            <i v-if="currentUser.groupWinners[group.id] === team.code" class="ph-fill ph-check-circle text-blue-400 text-xl"></i>
                         </div>
                     </div>
 
@@ -206,6 +215,7 @@
             </div>
         </div>
 
+        <!-- ONGLET : CLASSEMENT -->
         <div v-show="currentTab === 'ranking'" class="max-w-4xl mx-auto">
             <div class="flex items-center justify-between mb-8">
                 <h2 class="text-3xl font-black flex items-center gap-3 drop-shadow-md"><i class="ph-fill ph-trophy text-yellow-400 text-4xl drop-shadow-[0_0_15px_rgba(250,204,21,0.6)]"></i> Leaderboard</h2>
@@ -244,6 +254,7 @@
             </div>
         </div>
 
+        <!-- ONGLET : ADMIN (Dario uniquement) -->
         <div v-show="currentTab === 'admin' && isAdmin" class="space-y-6">
             <div class="glass-panel p-6 border-l-4 border-l-blue-500">
                 <h3 class="font-black text-xl mb-4 text-blue-400 flex items-center gap-2">Vainqueurs Officiels Poules</h3>
@@ -256,7 +267,7 @@
                         </select>
                     </div>
                 </div>
-                <button @click="saveAdminData" class="mt-5 btn-dynamic bg-blue-600 text-white py-3 px-6 rounded-xl font-black w-full shadow-[0_0_15px_rgba(37,99,235,0.4)]">Enregistrer & Partager les Vainqueurs</button>
+                <button @click="saveAdminData" class="mt-5 btn-dynamic bg-blue-600 text-white py-3 px-6 rounded-xl font-black w-full shadow-[0_0_15px_rgba(37,99,235,0.4)]">Enregistrer & Appliquer Localement</button>
             </div>
 
             <div class="glass-panel p-6 border-l-4 border-l-green-500">
@@ -272,7 +283,7 @@
                         <div class="w-[40%] text-left text-xs md:text-sm font-bold truncate"><img :src="`https://hatscripts.github.io/circle-flags/flags/${match.awayFlag}.svg`" class="w-5 h-5 inline rounded-full"> {{ match.away }}</div>
                     </div>
                 </div>
-                <button @click="saveAdminData" class="mt-6 w-full btn-dynamic bg-gradient-to-r from-green-600 to-emerald-500 text-white font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] text-lg">Enregistrer & Partager les Scores</button>
+                <button @click="saveAdminData" class="mt-6 w-full btn-dynamic bg-gradient-to-r from-green-600 to-emerald-500 text-white font-black py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(16,185,129,0.4)] text-lg">Enregistrer & Appliquer Localement</button>
             </div>
             
             <div class="glass-panel p-6 bg-red-900/10 border border-red-900">
@@ -285,6 +296,7 @@
     </div>
 </div>
 
+<!-- VUE 3 LOCAL SEUL -->
 <script type="module">
 import { createApp, ref, computed, onMounted, onUnmounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
 
@@ -364,15 +376,11 @@ createApp({
             GROUPS_DATA.forEach(g => { adminGroupWinners.value[g.id] = globalState.value.realGroupWinners[g.id] || ''; });
         }
 
-        // Remplacement de Firebase par le LocalStorage
         const pushDataToLocalStorage = () => {
             isSyncing.value = true;
             try {
                 localStorage.setItem(DB_KEY, JSON.stringify(globalState.value));
-            } catch (e) {
-                console.error("Erreur de sauvegarde locale:", e);
-            }
-            // Petit délai pour l'effet visuel de sauvegarde
+            } catch (e) { console.error("Erreur d'écriture locale", e); }
             setTimeout(() => { isSyncing.value = false; }, 300);
         };
 
@@ -382,20 +390,18 @@ createApp({
         };
 
         onMounted(() => {
-            // Chargement de la base de données locale
             const savedData = localStorage.getItem(DB_KEY);
             if (savedData) {
-                globalState.value = JSON.parse(savedData);
-                syncAdminForms();
+                try {
+                    globalState.value = JSON.parse(savedData);
+                    syncAdminForms();
+                } catch(e) { console.error("Base corrompue", e); }
             }
 
             intervalId = setInterval(() => { now.value = Date.now(); }, 1000);
 
-            // Restauration de la session utilisateur
             const activeUser = localStorage.getItem(AUTH_KEY);
-            if (activeUser && globalState.value.users[activeUser]) { 
-                currentUserName.value = activeUser; 
-            }
+            if (activeUser && globalState.value.users[activeUser]) { currentUserName.value = activeUser; }
         });
 
         onUnmounted(() => clearInterval(intervalId));
@@ -514,15 +520,15 @@ createApp({
             globalState.value.realScores = cleaned;
             globalState.value.realGroupWinners = { ...adminGroupWinners.value };
             pushDataToLocalStorage();
-            alert("✅ Données administratives validées et sauvegardées localement !");
+            alert("✅ Données validées et appliquées en local !");
         };
 
         const clearAllData = () => {
-            if (confirm("⚠️ DANGER : FORMATAGE DE LA BASE DE DONNÉES LOCALE. Seul le compte Master sera conservé. Confirmer ?")) {
+            if (confirm("⚠️ DANGER : FORMATAGE DE LA BASE DE DONNÉES. Seul le compte Master sera conservé. Confirmer ?")) {
                 const dario = globalState.value.users['Dario'];
                 globalState.value = { users: { 'Dario': dario }, realScores: {}, realGroupWinners: {} };
                 pushDataToLocalStorage();
-                alert("Base locale réinitialisée.");
+                alert("Base réinitialisée.");
             }
         };
 
