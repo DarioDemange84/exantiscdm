@@ -195,20 +195,35 @@
 
             <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
                 <div v-for="group in groups" :key="group.id" class="glass-panel p-5 flex flex-col relative border-t-4 border-t-gray-800 hover:border-t-blue-500 transition-colors">
-                    <h3 class="text-center font-black text-2xl mb-4 text-white drop-shadow-md">Groupe {{ group.id }}</h3>
+                    
+                    <div class="flex justify-between items-center mb-4">
+                        <h3 class="font-black text-2xl text-white drop-shadow-md">Groupe {{ group.id }}</h3>
+                        <!-- Minuteur Poule -->
+                        <div class="h-6 flex items-center justify-center">
+                            <div v-if="getTimer('group_' + group.id) > 0" class="text-[10px] font-bold timer-pulse bg-red-900/40 text-red-400 px-2 py-1 rounded-full border border-red-500/30 flex items-center gap-1 shadow-[0_0_10px_rgba(239,68,68,0.3)]">
+                                <i class="ph-bold ph-clock"></i> {{ formatTime(getTimer('group_' + group.id)) }}
+                            </div>
+                            <div v-else-if="currentUser.timers['group_' + group.id]" class="text-[10px] text-gray-600 font-bold flex items-center gap-1 bg-black/50 px-2 py-1 rounded-full">
+                                <i class="ph-fill ph-lock-key text-gray-500"></i> Fermé
+                            </div>
+                        </div>
+                    </div>
                     
                     <div class="flex-grow space-y-2 mt-2">
                         <div v-for="team in group.teams" :key="team.code" 
-                             @click="currentUser.groupWinners[group.id] = (currentUser.groupWinners[group.id] === team.code ? '' : team.code); debouncedUserSave()"
-                             class="flex items-center gap-3 text-sm p-3 rounded-lg border cursor-pointer transition-all duration-200"
-                             :class="currentUser.groupWinners[group.id] === team.code ? 'bg-blue-900/40 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] text-white font-bold transform scale-105' : 'bg-black/40 border-gray-800 text-gray-300 hover:bg-gray-800'">
+                             @click="if(!isLocked('group_' + group.id)) { currentUser.groupWinners[group.id] = (currentUser.groupWinners[group.id] === team.code ? '' : team.code); startTimer('group_' + group.id); debouncedUserSave(); }"
+                             class="flex items-center gap-3 text-sm p-3 rounded-lg border transition-all duration-200"
+                             :class="[
+                                currentUser.groupWinners[group.id] === team.code ? 'bg-blue-900/40 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] text-white font-bold transform scale-105' : 'bg-black/40 border-gray-800 text-gray-300',
+                                isLocked('group_' + group.id) ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer hover:bg-gray-800'
+                             ]">
                             <img :src="`https://hatscripts.github.io/circle-flags/flags/${team.code}.svg`" class="w-8 h-8 rounded-full shadow-sm">
                             <span class="flex-grow">{{ team.name }}</span>
                             <i v-if="currentUser.groupWinners[group.id] === team.code" class="ph-fill ph-check-circle text-blue-400 text-xl"></i>
                         </div>
                     </div>
 
-                    <div v-if="realGroupWinners[group.id]" class="absolute -top-3 right-4 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-[10px] px-3 py-1 rounded-full font-black shadow-lg border border-blue-300/30">
+                    <div v-if="realGroupWinners[group.id]" class="absolute -top-3 right-4 bg-gradient-to-r from-blue-600 to-blue-400 text-white text-[10px] px-3 py-1 rounded-full font-black shadow-lg border border-blue-300/30 z-10">
                         OFFICIEL : {{ getTeamName(realGroupWinners[group.id]) }}
                     </div>
                 </div>
