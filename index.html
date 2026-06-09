@@ -71,7 +71,7 @@
                     {{ authError }}
                 </div>
 
-                <button @click="login" :disabled="isSyncing" class="w-full btn-dynamic bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.4)] text-lg uppercase tracking-wide disabled:opacity-50 flex justify-center items-center gap-2">
+                <button type="button" @click="login" :disabled="isSyncing" class="w-full btn-dynamic bg-gradient-to-r from-green-600 to-emerald-500 text-white font-bold py-4 px-4 rounded-xl shadow-[0_0_20px_rgba(74,222,128,0.4)] text-lg uppercase tracking-wide disabled:opacity-50 flex justify-center items-center gap-2">
                     <i v-if="isSyncing" class="ph ph-spinner animate-spin"></i>
                     {{ isSyncing ? 'Chargement Local...' : 'Entrer dans l\'Arène' }}
                 </button>
@@ -211,7 +211,7 @@
                     
                     <div class="flex-grow space-y-2 mt-2">
                         <div v-for="team in group.teams" :key="team.code" 
-                             @click="if(!isLocked('group_' + group.id)) { currentUser.groupWinners[group.id] = (currentUser.groupWinners[group.id] === team.code ? '' : team.code); startTimer('group_' + group.id); debouncedUserSave(); }"
+                             @click="togglePoolWinner(group.id, team.code)"
                              class="flex items-center gap-3 text-sm p-3 rounded-lg border transition-all duration-200"
                              :class="[
                                 currentUser.groupWinners[group.id] === team.code ? 'bg-blue-900/40 border-blue-500 shadow-[0_0_15px_rgba(59,130,246,0.3)] text-white font-bold transform scale-105' : 'bg-black/40 border-gray-800 text-gray-300',
@@ -312,11 +312,20 @@
 </div>
 
 <!-- VUE 3 LOCAL SEUL -->
-<script type="module">
-import { createApp, ref, computed, onMounted, onUnmounted } from 'https://unpkg.com/vue@3/dist/vue.esm-browser.js';
+<script src="https://unpkg.com/vue@3/dist/vue.global.js"></script>
+<script>
+const { createApp, ref, computed, onMounted, onUnmounted } = Vue;
 
 const AUTH_KEY = 'wc2026_active_user';
 const DB_KEY = 'wc2026_master_db';
+
+// --- FIX APERÇU CANVAS (Protection Sandbox) ---
+let memFallback = {};
+const safeStorage = {
+    get(k) { try { return window.localStorage.getItem(k); } catch(e) { return memFallback[k] || null; } },
+    set(k, v) { try { window.localStorage.setItem(k, v); } catch(e) { memFallback[k] = v; } },
+    remove(k) { try { window.localStorage.removeItem(k); } catch(e) { delete memFallback[k]; } }
+};
 
 // Structure
 const GROUPS_DATA = [
@@ -373,8 +382,12 @@ createApp({
         const now = ref(Date.now());
         const isSyncing = ref(false);
         
+        // PRÉVENTION DU CRASH V-SHOW : On initialise tout de suite les objets admin avec les clés correspondantes
         const adminScores = ref({}); 
         const adminGroupWinners = ref({});
+        MATCHES.forEach(m => { adminScores.value[m.id] = { home: '', away: '' }; });
+        GROUPS_DATA.forEach(g => { adminGroupWinners.value[g.id] = ''; });
+
         let intervalId;
         let saveTimeout;
 
@@ -394,7 +407,7 @@ createApp({
         const pushDataToLocalStorage = () => {
             isSyncing.value = true;
             try {
-                localStorage.setItem(DB_KEY, JSON.stringify(globalState.value));
+                safeStorage.set(DB_KEY, JSON.stringify(globalState.value));
             } catch (e) { console.error("Erreur d'écriture locale", e); }
             setTimeout(() => { isSyncing.value = false; }, 300);
         };
@@ -404,18 +417,37 @@ createApp({
             saveTimeout = setTimeout(() => { pushDataToLocalStorage(); }, 800);
         };
 
+        // FONCTION DE RÉPARATION DE DONNÉES : S'assure que tout utilisateur a bien tous les champs requis,
+        // même s'il vient d'une vieille sauvegarde où certains matchs n'existaient pas encore.
+        const ensureUserData = (user) => {
+            if (!user.predictions) user.predictions = {};
+            if (!user.timers) user.timers = {};
+            if (!user.groupWinners) user.groupWinners = {};
+
+            MATCHES.forEach(m => {
+                if (!user.predictions[m.id]) user.predictions[m.id] = { home: '', away: '' };
+            });
+            GROUPS_DATA.forEach(g => {
+                if (!user.groupWinners[g.id]) user.groupWinners[g.id] = '';
+            });
+        };
+
         onMounted(() => {
-            const savedData = localStorage.getItem(DB_KEY);
+            const savedData = safeStorage.get(DB_KEY);
             if (savedData) {
                 try {
                     globalState.value = JSON.parse(savedData);
+                    // Répare tous les utilisateurs chargés depuis le cache local pour éviter les undefined
+                    if (globalState.value.users) {
+                        Object.values(globalState.value.users).forEach(ensureUserData);
+                    }
                     syncAdminForms();
                 } catch(e) { console.error("Base corrompue", e); }
             }
 
             intervalId = setInterval(() => { now.value = Date.now(); }, 1000);
 
-            const activeUser = localStorage.getItem(AUTH_KEY);
+            const activeUser = safeStorage.get(AUTH_KEY);
             if (activeUser && globalState.value.users[activeUser]) { currentUserName.value = activeUser; }
         });
 
@@ -437,24 +469,31 @@ createApp({
             const formattedName = name.charAt(0).toUpperCase() + name.slice(1).toLowerCase();
 
             if (!globalState.value.users[formattedName]) {
-                globalState.value.users[formattedName] = { name: formattedName, password: pwd, predictions: {}, timers: {}, groupWinners: {} };
-                MATCHES.forEach(m => { globalState.value.users[formattedName].predictions[m.id] = { home: '', away: '' }; });
-                GROUPS_DATA.forEach(g => { globalState.value.users[formattedName].groupWinners[g.id] = ''; });
-                currentUserName.value = formattedName;
+                const newUser = { name: formattedName, password: pwd, predictions: {}, timers: {}, groupWinners: {} };
+                ensureUserData(newUser); // Garantit que l'objet est complet
+                
+                // Correction technique : Force Vue 3 à rafraîchir le DOM
+                globalState.value.users = { ...globalState.value.users, [formattedName]: newUser };
+                
                 pushDataToLocalStorage(); 
             } else {
                 if (globalState.value.users[formattedName].password !== pwd) { authError.value = "Mot de passe incorrect."; return; }
-                currentUserName.value = formattedName;
+                // Par sécurité au login d'un ancien utilisateur
+                ensureUserData(globalState.value.users[formattedName]);
             }
             
-            localStorage.setItem(AUTH_KEY, formattedName);
+            // On met à jour l'état de l'interface instantanément
+            currentUserName.value = formattedName;
+            currentTab.value = 'pronos';
+            
+            safeStorage.set(AUTH_KEY, formattedName);
             auth.value = { username: '', password: '' };
         };
 
         const logout = () => {
             currentUserName.value = null;
             currentTab.value = 'pronos';
-            localStorage.removeItem(AUTH_KEY);
+            safeStorage.remove(AUTH_KEY);
         };
 
         const startTimer = (matchId) => {
@@ -475,6 +514,13 @@ createApp({
             if (!currentUser.value) return true;
             const exp = currentUser.value.timers[matchId];
             return exp ? now.value > exp : false; 
+        };
+
+        const togglePoolWinner = (groupId, teamCode) => {
+            if (isLocked('group_' + groupId)) return;
+            currentUser.value.groupWinners[groupId] = (currentUser.value.groupWinners[groupId] === teamCode ? '' : teamCode);
+            startTimer('group_' + groupId);
+            debouncedUserSave();
         };
 
         const formatTime = (ms) => {
@@ -550,7 +596,7 @@ createApp({
         return {
             auth, authError, currentUser, currentTab, matches, groups, realScores, realGroupWinners, globalState, adminScores, adminGroupWinners, isSyncing,
             login, logout, startTimer, getTimer, isLocked, formatTime, debouncedUserSave, getTeamName, getRankClass, getBadgeBgClass, getScoreColorClass,
-            leaderboard, isAdmin, saveAdminData, clearAllData
+            leaderboard, isAdmin, saveAdminData, clearAllData, togglePoolWinner
         };
     }
 }).mount('#app');
